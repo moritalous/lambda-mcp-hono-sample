@@ -1,127 +1,334 @@
-# apikey-authorization
+# API Key Authorization MCP Server
 
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
+AWS Lambda上で動作するAPIキー認証機能付きMCP（Model Context Protocol）サーバーのサンプル実装です。
 
-- hello-world - Code for the application's Lambda function written in TypeScript.
-- events - Invocation events that you can use to invoke the function.
-- hello-world/tests - Unit tests for the application code. 
-- template.yaml - A template that defines the application's AWS resources.
+## 概要
 
-The application uses several AWS resources, including Lambda functions and an API Gateway API. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
+このプロジェクトは、シンプルなAPIキー認証機能を持つMCPサーバーの実装例を提供します。Honoフレームワークのベアラートークン認証ミドルウェアを使用し、セキュアでありながら実装が簡単なMCPサーバーをAWS Lambda上で構築する方法を示しています。
 
-If you prefer to use an integrated development environment (IDE) to build and test your application, you can use the AWS Toolkit.  
-The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI to build and deploy serverless applications on AWS. The AWS Toolkit also adds a simplified step-through debugging experience for Lambda function code. See the following links to get started.
+## 特徴
 
-* [CLion](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [GoLand](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [IntelliJ](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [WebStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [Rider](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PhpStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PyCharm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [RubyMine](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [DataGrip](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
-* [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
+- **APIキー認証**: シンプルで実装しやすいベアラートークン認証
+- **AWS Lambda対応**: サーバーレス環境での動作に最適化
+- **Honoフレームワーク**: 軽量で高速なWebフレームワークを使用
+- **Streamable HTTP**: MCPのStreamable HTTP仕様をステートレスで実装
+- **TypeScript**: 型安全性を確保した開発
+- **環境変数設定**: APIキーの安全な管理
+- **認証ミドルウェア**: Honoの組み込み認証機能を活用
 
-## Deploy the sample application
+## 技術スタック
 
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
+- **MCP TypeScript SDK**: Model Context Protocolの公式TypeScript実装
+- **Hono**: Web Standards準拠の軽量Webフレームワーク
+- **Hono Bearer Auth**: Honoの組み込みベアラートークン認証ミドルウェア
+- **fetch-to-node**: MCPのTypeScript SDKとHonoの互換性のためのアダプター
+- **AWS Lambda**: サーバーレス実行環境
+- **AWS SAM**: サーバーレスアプリケーションの構築・デプロイツール
 
-To use the SAM CLI, you need the following tools.
+## プロジェクト構成
 
-* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Node.js - [Install Node.js 22](https://nodejs.org/en/), including the NPM package management tool.
-* Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
+```
+apikey-authorization/
+├── hello-world/          # Lambda関数のTypeScriptコード
+│   ├── app.ts           # メインアプリケーションファイル
+│   ├── package.json     # 依存関係の定義
+│   └── tests/           # ユニットテスト
+├── events/              # 関数呼び出し用のテストイベント
+├── template.yaml        # AWSリソース定義（SAMテンプレート）
+└── samconfig.toml       # SAM設定ファイル
+```
 
-To build and deploy your application for the first time, run the following in your shell:
+## MCPツール
+
+このサーバーは以下のツールを提供します：
+
+### calculate-bmi
+BMI（Body Mass Index）を計算するツールです。
+
+**入力パラメータ:**
+- `weightKg` (number): 体重（キログラム）
+- `heightM` (number): 身長（メートル）
+
+**出力:**
+- 計算されたBMI値（数値）
+
+**注意**: このツールにアクセスするには有効なAPIキーが必要です。
+
+## 認証方式
+
+このサーバーはHTTPヘッダーでのベアラートークン認証を使用します：
+
+```
+Authorization: Bearer YOUR_API_KEY
+```
+
+認証が失敗した場合、以下のエラーレスポンスが返されます：
+- **401 Unauthorized**: APIキーが無効または未提供
+- **403 Forbidden**: APIキーの形式が正しくない
+
+## 前提条件
+
+以下のツールがインストールされている必要があります：
+
+- [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) - AWS SAMアプリケーションの構築・デプロイ用
+- [Node.js 22](https://nodejs.org/en/) - NPMパッケージマネージャーを含む
+- [Docker](https://hub.docker.com/search/?type=edition&offering=community) - ローカル実行・テスト用
+
+## 環境変数の設定
+
+APIキー認証を正しく動作させるために、以下の環境変数を設定する必要があります：
+
+```bash
+export API_KEY="your-secret-api-key"
+```
+
+template.yamlでは以下のように設定されています：
+
+```yaml
+Environment:
+  Variables:
+    API_KEY: your-secret-api-key-here
+```
+
+**注意**: デプロイ前に`template.yaml`の`API_KEY`の値を実際のAPIキーに変更してください。
+
+## デプロイ手順
+
+### 1. APIキーの設定
+
+デプロイ前に`template.yaml`のAPIキーを変更します：
+
+```yaml
+Environment:
+  Variables:
+    API_KEY: your-actual-secret-api-key-here
+```
+
+### 2. アプリケーションのビルドとデプロイ
 
 ```bash
 sam build
 sam deploy --guided
 ```
 
-The first command will build the source of your application. The second command will package and deploy your application to AWS, with a series of prompts:
+デプロイ時の設定項目：
+- **Stack Name**: CloudFormationスタック名
+- **AWS Region**: デプロイ先のAWSリージョン
+- **Confirm changes before deploy**: デプロイ前の変更確認の有無
+- **Allow SAM CLI IAM role creation**: IAMロール作成の許可
 
-* **Stack Name**: The name of the stack to deploy to CloudFormation. This should be unique to your account and region, and a good starting point would be something matching your project name.
-* **AWS Region**: The AWS region you want to deploy your app to.
-* **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
-* **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modifies IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
-* **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
+### 3. セキュアな設定（推奨）
 
-You can find your API Gateway Endpoint URL in the output values displayed after deployment.
-
-## Use the SAM CLI to build and test locally
-
-Build your application with the `sam build` command.
-
-```bash
-apikey-authorization$ sam build
-```
-
-The SAM CLI installs dependencies defined in `hello-world/package.json`, compiles TypeScript with esbuild, creates a deployment package, and saves it in the `.aws-sam/build` folder.
-
-Test a single function by invoking it directly with a test event. An event is a JSON document that represents the input that the function receives from the event source. Test events are included in the `events` folder in this project.
-
-Run functions locally and invoke them with the `sam local invoke` command.
-
-```bash
-apikey-authorization$ sam local invoke HelloWorldFunction --event events/event.json
-```
-
-The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
-
-```bash
-apikey-authorization$ sam local start-api
-apikey-authorization$ curl http://localhost:3000/
-```
-
-The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
+本番環境では、APIキーをAWS Secrets Managerに保存することを強く推奨します：
 
 ```yaml
-      Events:
-        HelloWorld:
-          Type: Api
-          Properties:
-            Path: /hello
-            Method: get
+Environment:
+  Variables:
+    API_KEY: !Sub '{{resolve:secretsmanager:${SecretName}:SecretString:api_key}}'
 ```
 
-## Add a resource to your application
-The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
+## ローカル開発・テスト
 
-## Fetch, tail, and filter Lambda function logs
+### 環境変数の設定
 
-To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs` lets you fetch logs generated by your deployed Lambda function from the command line. In addition to printing the logs on the terminal, this command has several nifty features to help you quickly find the bug.
-
-`NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
+ローカル開発時は環境変数を設定します：
 
 ```bash
-apikey-authorization$ sam logs -n HelloWorldFunction --stack-name apikey-authorization --tail
+export API_KEY="test-api-key-12345"
 ```
 
-You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
+または、`env.json`ファイルを作成：
 
-## Unit tests
+```json
+{
+  "HelloWorldFunction": {
+    "API_KEY": "test-api-key-12345"
+  }
+}
+```
 
-Tests are defined in the `hello-world/tests` folder in this project. Use NPM to install the [Jest test framework](https://jestjs.io/) and run unit tests.
+### ローカルAPIの起動
 
 ```bash
-apikey-authorization$ cd hello-world
-hello-world$ npm install
-hello-world$ npm run test
+sam local start-api --env-vars env.json
 ```
 
-## Cleanup
+### 認証のテスト
 
-To delete the sample application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
+1. **認証なしでのアクセス（エラーになる）**:
+   ```bash
+   curl -X POST http://localhost:3000/mcp \
+     -H "Content-Type: application/json" \
+     -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
+   ```
+
+2. **正しいAPIキーでのアクセス**:
+   ```bash
+   curl -X POST http://localhost:3000/mcp \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer test-api-key-12345" \
+     -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
+   ```
+
+3. **BMI計算ツールの使用**:
+   ```bash
+   curl -X POST http://localhost:3000/mcp \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer test-api-key-12345" \
+     -d '{
+       "jsonrpc": "2.0",
+       "method": "tools/call",
+       "params": {
+         "name": "calculate-bmi",
+         "arguments": {
+           "weightKg": 70,
+           "heightM": 1.75
+         }
+       },
+       "id": 1
+     }'
+   ```
+
+## MCPクライアントでの使用
+
+APIキー認証付きMCPサーバーをMCPクライアントで使用する場合の設定例：
+
+### VS Code設定例
+
+```json
+{
+  "servers": {
+    "apikey-authorization": {
+      "url": "https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com/mcp",
+      "headers": {
+        "Authorization": "Bearer your-secret-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### カスタムMCPクライアント設定例
+
+```typescript
+const client = new Client({
+  name: "apikey-mcp-client",
+  version: "1.0.0"
+}, {
+  capabilities: {}
+});
+
+// HTTPヘッダーにAPIキーを設定
+const transport = new HTTPClientTransport({
+  baseURL: "https://your-api-gateway-url",
+  headers: {
+    "Authorization": "Bearer YOUR_API_KEY"
+  }
+});
+```
+
+## セキュリティ考慮事項
+
+### APIキーの管理
+
+- **強力なAPIキー**: 十分に長く、ランダムな文字列を使用
+- **定期的な更新**: APIキーを定期的に更新
+- **安全な保存**: AWS Secrets Manager等の安全な場所に保存
+- **環境分離**: 開発・ステージング・本番で異なるAPIキーを使用
+
+### 通信の保護
+
+- **HTTPS必須**: 本番環境では必ずHTTPS通信を使用
+- **CORS設定**: 適切なCORS設定を行う
+- **レート制限**: API Gateway等でレート制限を設定
+
+### ログとモニタリング
+
+- **アクセスログ**: 認証の成功・失敗をログに記録
+- **異常検知**: 不正なアクセス試行の監視
+- **アラート設定**: 異常なアクセスパターンの検知
+
+## 実装の詳細
+
+### ベアラー認証ミドルウェア
+
+```typescript
+import { bearerAuth } from 'hono/bearer-auth';
+
+const authMiddleware = bearerAuth({
+    token: process.env.API_KEY || '',
+    invalidTokenMessage: 'Invalid API key',
+    noAuthenticationHeaderMessage: 'Authorization header is required',
+});
+```
+
+### 認証付きエンドポイント
+
+```typescript
+app.post('/mcp', authMiddleware, async (c) => {
+    console.log('Received authenticated POST MCP request');
+    // MCP処理ロジック
+});
+```
+
+## トラブルシューティング
+
+### よくある問題
+
+1. **401 Unauthorized エラー**:
+   - APIキーが設定されているか確認
+   - Authorizationヘッダーの形式が正しいか確認
+   - APIキーの値が正しいか確認
+
+2. **環境変数が読み込まれない**:
+   - Lambda関数の環境変数設定を確認
+   - ローカル実行時は`env.json`ファイルを確認
+
+3. **CORS エラー**:
+   - API GatewayのCORS設定を確認
+   - プリフライトリクエストの処理を確認
+
+### デバッグ方法
+
+```bash
+# ログの確認
+sam logs -n HelloWorldFunction --stack-name apikey-authorization --tail
+
+# ローカルでのデバッグ実行
+sam local start-api --env-vars env.json --debug
+```
+
+## ユニットテスト
+
+テストは`hello-world/tests`フォルダに定義されています。現在のテストコードはSAM初期化時のテンプレートのままのため、MCP機能と認証機能に対応したテストに更新が必要です：
+
+```bash
+cd hello-world
+npm install
+npm run test
+```
+
+## リソースの削除
+
+作成したリソースを削除するには：
 
 ```bash
 sam delete --stack-name apikey-authorization
 ```
 
-## Resources
+## 他の認証方式との比較
 
-See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
+| 認証方式 | 実装の複雑さ | セキュリティレベル | 用途 |
+|---------|------------|------------------|------|
+| APIキー | 簡単 | 中程度 | 内部API、プロトタイプ |
+| OAuth 2.1 | 複雑 | 高 | 外部API、エンタープライズ |
+| JWT | 中程度 | 高 | マイクロサービス、SPA |
 
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+## 参考資料
+
+- [Model Context Protocol 公式ドキュメント](https://modelcontextprotocol.io/)
+- [Hono Bearer Auth ドキュメント](https://hono.dev/middleware/builtin/bearer-auth)
+- [Hono 公式ドキュメント](https://hono.dev/)
+- [AWS SAM 開発者ガイド](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html)
+- [AWS Secrets Manager](https://docs.aws.amazon.com/secretsmanager/)
+- [API セキュリティベストプラクティス](https://owasp.org/www-project-api-security/)

@@ -1,127 +1,221 @@
-# simple-mcp
+# Simple MCP Server
 
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
+AWS Lambda上で動作するシンプルなMCP（Model Context Protocol）サーバーのサンプル実装です。
 
-- hello-world - Code for the application's Lambda function written in TypeScript.
-- events - Invocation events that you can use to invoke the function.
-- hello-world/tests - Unit tests for the application code. 
-- template.yaml - A template that defines the application's AWS resources.
+## 概要
 
-The application uses several AWS resources, including Lambda functions and an API Gateway API. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
+このプロジェクトは、HonoフレームワークとMCP TypeScript SDKを使用して、AWS Lambda上でMCPサーバーを構築する基本的な例を提供します。認証機能は含まれておらず、MCPの基本的な仕組みを理解するためのシンプルな実装となっています。
 
-If you prefer to use an integrated development environment (IDE) to build and test your application, you can use the AWS Toolkit.  
-The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI to build and deploy serverless applications on AWS. The AWS Toolkit also adds a simplified step-through debugging experience for Lambda function code. See the following links to get started.
+## 特徴
 
-* [CLion](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [GoLand](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [IntelliJ](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [WebStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [Rider](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PhpStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PyCharm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [RubyMine](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [DataGrip](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
-* [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
+- **AWS Lambda対応**: サーバーレス環境での動作に最適化
+- **Honoフレームワーク**: 軽量で高速なWebフレームワークを使用
+- **Streamable HTTP**: MCPのStreamable HTTP仕様をステートレスで実装
+- **TypeScript**: 型安全性を確保した開発
+- **BMI計算ツール**: サンプルとしてBMI計算機能を提供
 
-## Deploy the sample application
+## 技術スタック
 
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
+- **MCP TypeScript SDK**: Model Context Protocolの公式TypeScript実装
+- **Hono**: Web Standards準拠の軽量Webフレームワーク
+- **fetch-to-node**: MCPのTypeScript SDKとHonoの互換性のためのアダプター
+- **AWS Lambda**: サーバーレス実行環境
+- **AWS SAM**: サーバーレスアプリケーションの構築・デプロイツール
 
-To use the SAM CLI, you need the following tools.
+## プロジェクト構成
 
-* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Node.js - [Install Node.js 22](https://nodejs.org/en/), including the NPM package management tool.
-* Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
+```
+simple-mcp/
+├── hello-world/          # Lambda関数のTypeScriptコード
+│   ├── app.ts           # メインアプリケーションファイル
+│   ├── package.json     # 依存関係の定義
+│   └── tests/           # ユニットテスト
+├── events/              # 関数呼び出し用のテストイベント
+├── template.yaml        # AWSリソース定義（SAMテンプレート）
+└── samconfig.toml       # SAM設定ファイル
+```
 
-To build and deploy your application for the first time, run the following in your shell:
+## MCPツール
+
+このサーバーは以下のツールを提供します：
+
+### calculate-bmi
+BMI（Body Mass Index）を計算するツールです。
+
+**入力パラメータ:**
+- `weightKg` (number): 体重（キログラム）
+- `heightM` (number): 身長（メートル）
+
+**出力:**
+- 計算されたBMI値（数値）
+
+## 前提条件
+
+以下のツールがインストールされている必要があります：
+
+- [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) - AWS SAMアプリケーションの構築・デプロイ用
+- [Node.js 22](https://nodejs.org/en/) - NPMパッケージマネージャーを含む
+- [Docker](https://hub.docker.com/search/?type=edition&offering=community) - ローカル実行・テスト用
+
+## 開発環境のセットアップ
+
+AWS Toolkitを使用することで、統合開発環境（IDE）でアプリケーションの構築・テストが可能です：
+
+- [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
+- [IntelliJ](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
+- [WebStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
+- その他のJetBrains IDE
+
+## デプロイ手順
+
+### 1. アプリケーションのビルドとデプロイ
+
+初回デプロイ時は以下のコマンドを実行します：
 
 ```bash
 sam build
 sam deploy --guided
 ```
 
-The first command will build the source of your application. The second command will package and deploy your application to AWS, with a series of prompts:
+`sam deploy --guided`実行時に以下の項目を設定します：
 
-* **Stack Name**: The name of the stack to deploy to CloudFormation. This should be unique to your account and region, and a good starting point would be something matching your project name.
-* **AWS Region**: The AWS region you want to deploy your app to.
-* **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
-* **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modifies IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
-* **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
+- **Stack Name**: CloudFormationスタック名（プロジェクト名に合わせて設定）
+- **AWS Region**: デプロイ先のAWSリージョン
+- **Confirm changes before deploy**: デプロイ前の変更確認の有無
+- **Allow SAM CLI IAM role creation**: IAMロール作成の許可
+- **Save arguments to samconfig.toml**: 設定の保存（次回以降は`sam deploy`のみで実行可能）
 
-You can find your API Gateway Endpoint URL in the output values displayed after deployment.
+デプロイ完了後、出力にAPI Gateway EndpointのURLが表示されます。
 
-## Use the SAM CLI to build and test locally
+### 2. 設定の保存
 
-Build your application with the `sam build` command.
-
-```bash
-simple-mcp$ sam build
-```
-
-The SAM CLI installs dependencies defined in `hello-world/package.json`, compiles TypeScript with esbuild, creates a deployment package, and saves it in the `.aws-sam/build` folder.
-
-Test a single function by invoking it directly with a test event. An event is a JSON document that represents the input that the function receives from the event source. Test events are included in the `events` folder in this project.
-
-Run functions locally and invoke them with the `sam local invoke` command.
+初回デプロイ時に設定を保存した場合、次回以降は以下のコマンドでデプロイできます：
 
 ```bash
-simple-mcp$ sam local invoke HelloWorldFunction --event events/event.json
+sam build
+sam deploy
 ```
 
-The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
+## ローカル開発・テスト
+
+### アプリケーションのビルド
 
 ```bash
-simple-mcp$ sam local start-api
-simple-mcp$ curl http://localhost:3000/
+sam build
 ```
 
-The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
+SAM CLIは`hello-world/package.json`で定義された依存関係をインストールし、esbuildでTypeScriptをコンパイルして、`.aws-sam/build`フォルダにデプロイメントパッケージを作成します。
 
-```yaml
-      Events:
-        HelloWorld:
-          Type: Api
-          Properties:
-            Path: /hello
-            Method: get
-```
+### 単一関数のテスト
 
-## Add a resource to your application
-The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
-
-## Fetch, tail, and filter Lambda function logs
-
-To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs` lets you fetch logs generated by your deployed Lambda function from the command line. In addition to printing the logs on the terminal, this command has several nifty features to help you quickly find the bug.
-
-`NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
+テストイベントを使用して関数を直接呼び出すことができます：
 
 ```bash
-simple-mcp$ sam logs -n HelloWorldFunction --stack-name simple-mcp --tail
+sam local invoke HelloWorldFunction --event events/event.json
 ```
 
-You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
+### ローカルAPIの起動
 
-## Unit tests
-
-Tests are defined in the `hello-world/tests` folder in this project. Use NPM to install the [Jest test framework](https://jestjs.io/) and run unit tests.
+ローカル環境でAPIを起動してテストできます：
 
 ```bash
-simple-mcp$ cd hello-world
-hello-world$ npm install
-hello-world$ npm run test
+sam local start-api
 ```
 
-## Cleanup
+起動後、以下のURLでアクセス可能です：
+- `http://localhost:3000/mcp` - MCPエンドポイント
 
-To delete the sample application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
+### MCPクライアントでのテスト
+
+デプロイ後、MCPクライアント（VS Code、Claude Desktop等）から以下の設定でサーバーに接続できます：
+
+```json
+{
+  "servers": {
+    "simple-mcp": {
+      "url": "https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com/mcp"
+    }
+  }
+}
+```
+
+## ユニットテスト
+
+テストは`hello-world/tests`フォルダに定義されています。現在のテストコードはSAM初期化時のテンプレートのままのため、MCP機能に対応したテストに更新が必要です：
+
+```bash
+cd hello-world
+npm install
+npm run test
+```
+
+## ログの確認
+
+デプロイされたLambda関数のログを確認するには：
+
+```bash
+sam logs -n HelloWorldFunction --stack-name simple-mcp --tail
+```
+
+## リソースの削除
+
+作成したリソースを削除するには：
 
 ```bash
 sam delete --stack-name simple-mcp
 ```
 
-## Resources
+## 実装の詳細
 
-See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
+### MCPサーバーの初期化
 
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+```typescript
+const server = new McpServer({
+    name: 'example-server',
+    version: '1.0.0',
+});
+```
+
+### ツールの登録
+
+```typescript
+server.registerTool(
+    'calculate-bmi',
+    {
+        description: 'Calculate Body Mass Index',
+        inputSchema: {
+            weightKg: z.number(),
+            heightM: z.number(),
+        },
+    },
+    async ({ weightKg, heightM }) => ({
+        content: [
+            {
+                type: 'text',
+                text: String(weightKg / (heightM * heightM)),
+            },
+        ],
+    }),
+);
+```
+
+### Streamable HTTPトランスポート
+
+```typescript
+const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+});
+```
+
+### HonoとMCPの統合
+
+`fetch-to-node`パッケージを使用してHonoのRequestオブジェクトをNode.jsのreq/resオブジェクトに変換し、MCPサーバーとの互換性を確保しています。
+
+## 参考資料
+
+- [Model Context Protocol 公式ドキュメント](https://modelcontextprotocol.io/)
+- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+- [Hono 公式ドキュメント](https://hono.dev/)
+- [AWS SAM 開発者ガイド](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html)
+- [AWS Lambda Node.js ランタイム](https://docs.aws.amazon.com/lambda/latest/dg/lambda-nodejs.html)
