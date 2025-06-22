@@ -1,0 +1,205 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  simple-mcp
+
+  Sample SAM Template for simple-mcp
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+
+Resources:
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub ${AWS::StackName}-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowCredentials: false
+        AllowHeaders:
+          - "*"
+        AllowMethods:
+          - "*"
+        AllowOrigins:
+          - "*"
+
+  HttpApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: $default
+      AutoDeploy: true
+
+  LambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
+      PayloadFormatVersion: "2.0"
+
+  McpPostRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /mcp
+      Target: !Sub integrations/${LambdaIntegration}
+
+  # OAuth メタデータエンドポイント
+  OauthProtectedResourceRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /.well-known/oauth-protected-resource
+      Target: !Sub integrations/${LambdaIntegration}
+
+  OauthAuthorizationServerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /.well-known/oauth-authorization-server
+      Target: !Sub integrations/${LambdaIntegration}
+
+  ClientRegistrationRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /register
+      Target: !Sub integrations/${LambdaIntegration}
+
+  OAuthAuthorizeRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /oauth2/authorize
+      Target: !Sub integrations/${LambdaIntegration}
+
+  OAuthCallbackRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /oauth2/callback
+      Target: !Sub integrations/${LambdaIntegration}
+
+  OAuthTokenRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /oauth2/token
+      Target: !Sub integrations/${LambdaIntegration}
+
+  ApiGatewayLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref HelloWorldFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*
+
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      # UserPoolName: !Sub ${AWS::StackName}-user-pool
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      # Schema:
+      #   - AttributeDataType: String
+      #     Name: email
+      #     Required: true
+      #     Mutable: true
+      #   - AttributeDataType: String
+      #     Name: name
+      #     Required: true
+      #     Mutable: true
+      # EmailConfiguration:
+      #   EmailSendingAccount: COGNITO_DEFAULT
+      # VerificationMessageTemplate:
+      #   DefaultEmailOption: CONFIRM_WITH_CODE
+      #   EmailMessage: Your verification code is {####}
+      #   EmailSubject: Verify your email
+      # AdminCreateUserConfig:
+      #   AllowAdminCreateUserOnly: false
+      #   InviteMessageTemplate:
+      #     EmailMessage: Your username is {username} and temporary password is {####}
+      #     EmailSubject: Your temporary password
+      # UserPoolTags:
+      #   Project: lambda-mcp-hono
+      #   Environment: !Ref AWS::StackName
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      # ClientName: !Sub ${AWS::StackName}-user-pool-client
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      # PreventUserExistenceErrors: ENABLED
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/oauth2/callback
+      # LogoutURLs:
+      #   - !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/logout
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+      AllowedOAuthFlowsUserPoolClient: true
+
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      Domain: !Sub "${AWS::StackName}-oauth-domain-${AWS::AccountId}"
+
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: hello-world/
+      Handler: app.lambdaHandler
+      Runtime: nodejs22.x
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPool
+          COGNITO_USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
+          COGNITO_DOMAIN: !Sub https://${CognitoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com
+          API_BASE_URL: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints: 
+        - app.ts
+
+Outputs:
+  # HttpApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  HelloWorldApi:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/mcp"
+  HelloWorldFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt HelloWorldFunctionRole.Arn
